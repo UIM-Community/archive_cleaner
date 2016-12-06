@@ -36,46 +36,18 @@ $SIG{INT} = \&breakApplication;
 # Instanciating configuration file!
 # ************************************************* #
 my $CFG = Nimbus::CFG->new("archive_cleaner.cfg");
-my $CFG_Login           = $CFG->{"setup"}->{"login"} || "administrator";
-my $CFG_Password 	    = $CFG->{"setup"}->{"password"} || "nim76prox";
+my $CFG_Login           = $CFG->{"setup"}->{"login"};
+my $CFG_Password 	    = $CFG->{"setup"}->{"password"};
 my $CFG_Audit           = $CFG->{"setup"}->{"audit"} || 0;
-my $CFG_Domain 		    = $CFG->{"setup"}->{"domain"} || "NMS-PROD";
+my $CFG_Domain 		    = $CFG->{"setup"}->{"domain"};
 my $CFG_Ouput		    = $CFG->{"setup"}->{"output_directory"} || "output";
 my $CFG_Cache		    = $CFG->{"setup"}->{"output_cache"} || 3;
 my $CFG_Loglevel        = $CFG->{"setup"}->{"loglevel"} || 3;
-my $CFG_OriginalHub     = $CFG->{"setup"}->{"original_hub"} || "GLNMS-PHUB";
-my $CFG_UpdateRule      = $CFG->{"setup"}->{"update_rules"} || 0;
-my $CFG_CheckCMDB       = $CFG->{"setup"}->{"checkcmdb"} || 0;
+my $CFG_OriginalHub     = $CFG->{"setup"}->{"original_hub"};
 
 $Console->print("Print script configuration : ",5);
 foreach($CFG->getKeys($CFG->{"setup"})) {
     $Console->print("Configuration : $_ => $CFG->{setup}->{$_}");
-}
-
-# ************************************************* #
-# DBI
-# ************************************************* #
-my $DB;
-if($CFG_CheckCMDB){
-    my $DB_User         = $CFG->{"CMDB"}->{"sql_user"};
-    my $DB_Password     = $CFG->{"CMDB"}->{"sql_password"};
-    my $DB_SQLServer    = $CFG->{"CMDB"}->{"sql_host"};
-    my $DB_Database     = $CFG->{"CMDB"}->{"sql_database"};
-
-    $DB = DBI->connect("$DB_SQLServer;UID=$DB_User;PWD=$DB_Password",{
-        RaiseError => 1,
-        AutoCommit => 1
-    });
-
-    if(not defined($DB)) {
-        $Console->print("Failed to contact database!");
-        $Console->close();
-        exit(1);
-    }
-    else {
-        $Console->print("Contact database successfull! Connection info : $DB_Database");
-        $DB->do("USE $DB_Database");
-    }
 }
 
 # Set loglevel
@@ -154,30 +126,6 @@ eval {
     if($RC == NIME_OK) {
         my $numberPackages = scalar keys %PrimaryPackages;
         $Console->print("Successfully Retrieving $numberPackages packages from primary hub!",3);
-
-        if($CFG_UpdateRule) {
-            $Console->print("Add packages synchronisation rules!");
-            foreach my $PKG (values %PrimaryPackages) {
-                if($PKG->{valid} == 1) {
-                    my $sth = $DB->prepare("SELECT count(*) FROM NIMSOFT_hubs_packages WHERE name = ?");
-                    $sth->execute($PKG->{name});
-                    my $rows = $sth->fetch()->[0];
-                    if ("$rows" eq "0") {
-                        my $Success = $archive->ade_addPackageSyncRule($PKG);
-                        if($Success == NIME_OK) {
-                            $Console->print("Successfully add $PKG->{name} to the archive sync rules!",3);
-                        }
-                        else {
-                            $Console->print("Failed to add $PKG->{name} to the archive sync rules!",1);
-                        }
-                    }
-                    else {
-                        $Console->print("No need to synchronise $PKG->{name} with version $PKG->{version} (NB Row => $rows)",3);
-                    }
-                    $sth->finish;
-                }
-            }
-        }
     }
     else {
         closeHandler('Unable to get primary packages informations!');

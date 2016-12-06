@@ -18,12 +18,5 @@ The probe use Perluim framework. You can find it [Here](https://github.com/fraxk
     output_directory = output
     output_cache = 3
     original_hub = YOURHUB
-    update_rules = 0
 </setup>
-<CMDB>
-   sql_host = 
-   sql_user = 
-   sql_password = 
-   sql_database = 
-</CMDB>
 ```
